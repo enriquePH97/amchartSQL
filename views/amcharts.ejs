@@ -1,0 +1,160 @@
+<!-- Styles -->
+<style>
+  #chartdiv {
+    width: 100%;
+    height: 400px;
+  }
+  
+  </style>
+  
+  <!-- Resources -->
+  <script src="https://cdn.amcharts.com/lib/4/core.js"></script>
+  <script src="https://cdn.amcharts.com/lib/4/charts.js"></script>
+  <script src="https://cdn.amcharts.com/lib/4/themes/animated.js"></script>
+  
+  <!-- Chart code -->
+  <script>
+/*function interpolateColor(color1, color2, factor) {
+    if (arguments.length < 3) { 
+        factor = 0.5; 
+    }
+    var result = color1.slice();
+    for (var i = 0; i < 3; i++) {
+        result[i] = Math.round(result[i] + factor * (color2[i] - color1[i]));
+    }
+    return result;
+};
+  function getColor(low,high,temperature,max){
+    var color = interpolateColor(low,high,temperature/max)
+    return "rgb("+color[0].toString() +","+color[1].toString()+","+color[2].toString()+")"
+  }*/
+
+  var minValue = 0;
+  var maxValue = 40;
+
+  am4core.ready(function() {
+  
+  // Themes begin
+  am4core.useTheme(am4themes_animated);
+  // Themes end
+  
+  var chart = am4core.create("chartdiv", am4charts.XYChart);
+  chart.hiddenState.properties.opacity = 0;
+  
+  var dat = <%- JSON.stringify(datos) %>;
+
+  //Add color by temperature
+  //First parameter is blue which represent de lower color for temperature = 0
+  //Second parameter is red which represent de higher color for temperature = 40 = max (4 parameter)
+  for (var i = 0; i < dat.length; i += 5){
+    //dat[i]['color'] = getColor([0,0,255],[255,0,0],dat[i]['temperature'],40);
+    dat[i]['minValue'] = minValue;
+    dat[i]['maxValue'] = maxValue;
+  }
+  
+  
+  chart.data = dat;
+  
+  
+  // Set input format for the dates
+  chart.dateFormatter.inputDateFormat = "yyyy-MM-dd HH:mm:ss";
+
+  // Create axes
+  var dateAxis = chart.xAxes.push(new am4charts.DateAxis());
+  dateAxis.renderer.grid.template.location = 0;
+  dateAxis.minZoomCount = 5;
+
+  // this makes the data to be grouped
+  dateAxis.groupData = true;
+  dateAxis.groupCount = 1000;
+
+  var gradient = new am4core.LinearGradient();
+  gradient.addColor(am4core.color("green"));
+  gradient.addColor(am4core.color("yellow"));
+  gradient.addColor(am4core.color("red"));
+  gradient.rotation = 270;
+
+
+
+  var valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
+  //valueAxis.min = 0;
+
+
+
+  // add gradient series for min until max (full gradient)
+  var gseries = chart.series.push(new am4charts.LineSeries());
+  gseries.dataFields.valueY = "maxValue";
+  gseries.dataFields.openValueY = "minValue";
+  gseries.dataFields.dateX = "date";
+  gseries.fillOpacity = 0.5;
+  gseries.strokeWidth = 0;
+  gseries.fill = gradient;
+  gseries.ignoreMinMax = true;
+
+
+  // Create series
+  var series = chart.series.push(new am4charts.LineSeries());
+  series.dataFields.valueY = "temperature";
+  series.dataFields.dateX = "date";
+  series.tooltipText = "{temperature}";
+  series.tooltip.pointerOrientation = "vertical";
+  series.strokeWidth = 1; 
+  //series.stroke = gradient;
+  //series.fill = gradient;
+  series.fillOpacity = 1;
+  //series.propertyFields.fill = "color";
+  //series.propertyFields.stroke = "color";
+  
+
+
+  //Aplicar mascara
+  series.events.on("inited", () => {
+  // loop through all
+  for (var i = 0; i < gseries.segments.length; i++) {
+    gseries.segments.getIndex(i).mask = series.segments
+      .getIndex(i)
+      .children.getIndex(0);
+  }
+});
+
+
+  chart.cursor = new am4charts.XYCursor();
+  chart.cursor.snapToSeries = series;
+  chart.cursor.xAxis = dateAxis;
+
+
+  //Lineas horizontales de colores
+  let range = valueAxis.axisRanges.create();
+  range.value = 17;
+  range.grid.stroke = am4core.color("green");
+  range.grid.strokeWidth = 2;
+  range.grid.strokeOpacity = 1;
+
+  let range2 = valueAxis.axisRanges.create();
+  range2.value = 22;
+  range2.grid.stroke = am4core.color("yellow");
+  range2.grid.strokeWidth = 2;
+  range2.grid.strokeOpacity = 1;
+
+  let range3 = valueAxis.axisRanges.create();
+  range3.value = 30;
+  range3.grid.stroke = am4core.color("red");
+  range3.grid.strokeWidth = 2;
+  range3.grid.strokeOpacity = 1;
+
+
+  
+
+  chart.scrollbarX = new am4core.Scrollbar()
+  chart.scrollbarX.startGrip.disabled = true
+  chart.scrollbarX.endGrip.disabled = true
+  chart.scrollbarX.showSystemTooltip = false
+  chart.scrollbarX.minHeight = 14
+
+  
+  }); // end am4core.ready()
+  </script>
+  
+  <!-- HTML -->
+  <h2>Prueba con mysql. Datos de <%= texto %> mediciones</h2>
+  <div id="chartdiv"></div>
